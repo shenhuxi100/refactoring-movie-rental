@@ -5,62 +5,44 @@ import java.util.Vector;
 
 public class Customer {
 
-    private String name;
+    private String customerName;
     private Vector<Rental> rentals = new Vector<>();
+    private double totalAmount;
+    private int frequentRenterPoints;
 
-    Customer(String name) {
-        this.name = name;
+    Customer(String customerName) {
+        this.customerName = customerName;
     }
 
     void addRental(Rental rental) {
         rentals.addElement(rental);
     }
 
-    public String getName() {
-        return name;
-    }
-
     String statement() {
-        double totalAmount = 0d;
-        int frequentRenterPoints = 0;
-        Enumeration<Rental> rentals = this.rentals.elements();
-        StringBuilder result = new StringBuilder("Rental Record for " + getName() + "：\n");
-        while (rentals.hasMoreElements()) {
-            Rental each = rentals.nextElement();
-            //show figures for this rental
-            //determine amounts for each line
-            double thisAmount = 0d;
-            switch (each.getMovie().getPriceCode()) {
-                case Movie.HISTORY:
-                    thisAmount += 2;
-                    if (each.getDaysRented() > 2)
-                        thisAmount += (each.getDaysRented() - 2) * 1.5;
-                    break;
-                case Movie.NEW_RELEASE:
-                    thisAmount += each.getDaysRented() * 3;
-                    break;
-                case Movie.CAMPUS:
-                    thisAmount += 1.5;
-                    if (each.getDaysRented() > 3)
-                        thisAmount += (each.getDaysRented() - 3) * 1.5;
-                    break;
-            }
-            //add frequent renter points
-            frequentRenterPoints++;
-            if ((each.getMovie().getPriceCode() == Movie.NEW_RELEASE) && each.getDaysRented() > 1)
-                frequentRenterPoints++;
+        StringBuilder statementResult = buildHeader();
+        buildBody(this, statementResult);
+        buildFooter(totalAmount, frequentRenterPoints, statementResult);
 
-            //show figures for this rental
-            result.append("\t")
-                  .append(each.getMovie().getTitle())
-                  .append("\t")
-                  .append(thisAmount).append("\n");
-            totalAmount += thisAmount;
-        }
-        //add footer lines
-        result.append("Amount owed is ").append(totalAmount).append("\n");
-        result.append("You earned ").append(frequentRenterPoints).append(" frequent renter points");
-        return result.toString();
+        return statementResult.toString();
     }
 
+    private static void buildBody(Customer customer, StringBuilder statementResult) {
+        Enumeration<Rental> rentals = customer.rentals.elements();
+        while (rentals.hasMoreElements()) {
+            Rental rental = rentals.nextElement();
+            rental.buildRentalAmount(statementResult);
+
+            customer.frequentRenterPoints = rental.addFrequentRenterPoint(customer.frequentRenterPoints);
+            customer.totalAmount += rental.getRentalAmount();
+        }
+    }
+
+    private StringBuilder buildHeader() {
+        return new StringBuilder("Rental Record for " + this.customerName + "：\n");
+    }
+
+    private void buildFooter(double totalAmount, int frequentRenterPoints, StringBuilder statementResult) {
+        statementResult.append("Amount owed is ").append(totalAmount).append("\n");
+        statementResult.append("You earned ").append(frequentRenterPoints).append(" frequent renter points");
+    }
 }
